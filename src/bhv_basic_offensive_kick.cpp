@@ -101,71 +101,6 @@ Bhv_BasicOffensiveKick::execute( PlayerAgent * agent )
     return true;
 }
 
-bool Bhv_BasicOffensiveKick::shoot( rcsc::PlayerAgent * agent ){
-	const WorldModel & wm = agent->world();
-	Vector2D ball_pos = wm.ball().pos();
-	Vector2D center_goal = Vector2D(52.5,0);
-	if(ball_pos.dist(center_goal) > 25)
-            return false;
-    Vector2D goal[26];
-    double DistFromGoal[26];
-    int goal_num=0;
-    for (double i=-6;i<=6;i=i+0.5){
-        goal[goal_num]= Vector2D(52.5,i);
-        DistFromGoal[goal_num] = goal[goal_num].dist(ball_pos);
-        Sector2D goal_triangle = Sector2D (ball_pos,1,ball_pos.dist(goal[goal_num]),(goal[goal_num] - ball_pos).th()-20,(goal[goal_num] - ball_pos).th()+20);
-        if (wm.existOpponentIn(goal_triangle,5,true)){
-            goal[goal_num]=Vector2D(0,0);
-        }
-        ++goal_num;
-    }
-    double swaping;
-    Vector2D swap_vec;
-    for (int i=0;i<25;++i)
-    {
-        for (int j=i+1;j<26;++j)
-        {
-            if (DistFromGoal[i] > DistFromGoal[j])
-            {
-                swaping = DistFromGoal[i];
-                DistFromGoal[i]=DistFromGoal[j];
-                DistFromGoal[j]=swaping;
-                swap_vec = goal[i];
-                goal[i]=goal[j];
-                goal[j]=swap_vec;
-            }
-        }
-    }
-    int best_shoot=-1;
-    for (int i=25;i<0;--i)
-    {
-        if (goal[i] != Vector2D(0,0))
-        {
-            best_shoot=i;
-        }
-    }
-    if (best_shoot != -1)
-    {
-        return false;
-    }
-    else {
-        Body_SmartKick(goal[best_shoot],3,2.7,2).execute(agent);
-        return true;
-    }
-	Vector2D left_goal = Vector2D(52.5,6);
-	Vector2D right_goal = Vector2D(52.5,-6);
-    Sector2D left_triangle =Sector2D (ball_pos,1,ball_pos.dist(left_goal),(left_goal - ball_pos).th()-20,(left_goal - ball_pos).th()+20);
-    Sector2D right_triangle = Sector2D (ball_pos,1,ball_pos.dist(right_goal),(right_goal - ball_pos).th()-20,(right_goal - ball_pos).th()+20);
-	if(left_goal.dist(ball_pos) < right_goal.dist(ball_pos) && ! wm.existOpponentIn(left_triangle,5,true)){
-        Body_SmartKick(left_goal,2.7,2.7,2).execute(agent);
-        return true;
-	}else if (! wm.existOpponentIn(right_triangle,5,true)){
-        Body_SmartKick(right_goal,2.7,2.7,2).execute(agent);
-        return true;
-	}
-	
-}
-
 bool Bhv_BasicOffensiveKick::pass(PlayerAgent * agent){
 	const WorldModel & wm = agent->world();
 	std::vector<Vector2D> targets;
@@ -175,7 +110,8 @@ bool Bhv_BasicOffensiveKick::pass(PlayerAgent * agent){
 		if(tm->unum() == wm.self().unum() )
 			continue;
 		Vector2D tm_pos = tm->pos();
-		if(tm->pos().dist(ball_pos) > 30)
+        Vector2D new_self = wm.self().pos();
+		if(tm->pos().dist(ball_pos) > new_self.x - 1)
 			continue;
 		Sector2D pass = Sector2D(ball_pos,1,tm_pos.dist(ball_pos)+3,(tm_pos - ball_pos).th() - 15,(tm_pos - ball_pos).th() + 15);
 		if(!wm.existOpponentIn(pass,5,true)){
@@ -190,11 +126,96 @@ bool Bhv_BasicOffensiveKick::pass(PlayerAgent * agent){
 			best_target = targets[i];
 	}
 	
-	if(wm.gameMode().type()!= GameMode::PlayOn && safe(agent,best_target,3))
-        Body_SmartKick(best_target,3,2.7,1).execute(agent);
+	if(wm.gameMode().type()!= GameMode::PlayOn || wm.gameMode().type() == GameMode::GoalKick_ )
+        if (safe(agent,best_target,3))
+            Body_SmartKick(best_target,3,2.7,1).execute(agent);
 	else if(safe(agent,best_target,3))
         Body_SmartKick(best_target,3,2.7,2).execute(agent);
 	return true;
+}
+
+bool Bhv_BasicOffensiveKick::shoot( rcsc::PlayerAgent * agent ){
+    const WorldModel & wm = agent->world();
+	Vector2D ball_pos = wm.ball().pos();
+	Vector2D center_goal = Vector2D(52.5,0);
+	if(ball_pos.dist(center_goal) > 10)
+            return false;
+    Vector2D goal[14];
+    double DistFromGoal[14];
+    int goal_num=0;
+    for (double i=-6;i<=6;i=++i){
+        goal[goal_num]= Vector2D(52.5,i);
+        DistFromGoal[goal_num] = goal[goal_num].dist(ball_pos);
+        Sector2D goal_triangle = Sector2D (ball_pos,1,ball_pos.dist(goal[goal_num]),(goal[goal_num] - ball_pos).th()-20,(goal[goal_num] - ball_pos).th()+20);
+        if (wm.existOpponentIn(goal_triangle,5,true)){
+            goal[goal_num]=Vector2D(0,0);
+        }
+        ++goal_num;
+    }
+    double swaping;
+    Vector2D swap_vec;
+    for (int i=0;i<13;++i)
+    {
+        for (int j=i+1;j<14;++j)
+        {
+            if (DistFromGoal[i] > DistFromGoal[j])
+            {
+                swaping = DistFromGoal[i];
+                DistFromGoal[i]=DistFromGoal[j];
+                DistFromGoal[j]=swaping;
+                swap_vec = goal[i];
+                goal[i]=goal[j];
+                goal[j]=swap_vec;
+            }
+        }
+    }
+    int best_shoot=-1;
+    for (int i=13;i<=0;++i)
+    {
+        if (goal[i] != Vector2D(0,0))
+        {
+            best_shoot=i;
+        }
+    }
+    if (best_shoot == -1)
+    {
+        return false;
+    }
+    else {
+        Body_SmartKick(goal[best_shoot],3,2.7,2).execute(agent);
+        return true;
+    }
+	/*const WorldModel & wm = agent->world();
+	Vector2D ball_pos = wm.ball().pos();
+	Vector2D center_goal = Vector2D(52.5,0);
+	if(ball_pos.dist(center_goal) > 15)
+            return false;
+    Vector2D goal[26];
+	Vector2D left_goal = Vector2D(52.5,6);
+	Vector2D right_goal = Vector2D(52.5,-6);
+    Sector2D sector_left=Sector2D(ball_pos,1,ball_pos.dist(left_goal),(left_goal-ball_pos).th()-20,(left_goal-ball_pos).th()+20);
+    Sector2D sector_right=Sector2D(ball_pos,1,ball_pos.dist(right_goal),(right_goal-ball_pos).th()-20,(right_goal-ball_pos).th()+20);
+
+	if(left_goal.dist(ball_pos) < right_goal.dist(ball_pos) && ! wm.existOpponentIn(sector_left,5,true))
+    {
+        Body_SmartKick(left_goal,3,0.1,2).execute(agent);
+        return true;
+	}
+	else if(wm.existOpponentIn(sector_right,5,true))
+    {
+        Body_SmartKick(right_goal,3,0.1,2).execute(agent);
+        return true;
+	}
+    Sector2D left_triangle =Sector2D (ball_pos,1,ball_pos.dist(left_goal),(left_goal - ball_pos).th()-20,(left_goal - ball_pos).th()+20);
+    Sector2D right_triangle = Sector2D (ball_pos,1,ball_pos.dist(right_goal),(right_goal - ball_pos).th()-20,(right_goal - ball_pos).th()+20);
+	if(left_goal.dist(ball_pos) < right_goal.dist(ball_pos) && ! wm.existOpponentIn(left_triangle,5,true)){
+        Body_SmartKick(left_goal,2.7,2.7,2).execute(agent);
+        return true;
+	}else if (! wm.existOpponentIn(right_triangle,5,true)){
+        Body_SmartKick(right_goal,2.7,2.7,2).execute(agent);
+        return true;
+	}
+	return false;*/
 }
 
 bool Bhv_BasicOffensiveKick::dribble(PlayerAgent * agent){
@@ -435,25 +456,25 @@ bool Bhv_BasicOffensiveKick::shoot_test(rcsc::PlayerAgent* agent)
 }
 
 
-bool Bhv_BasicOffensiveKick::safe(rcsc::PlayerAgent* agent, rcsc::Vector2D mate_pos, double mate_dist)
+bool Bhv_BasicOffensiveKick::safe(rcsc::PlayerAgent* agent, Vector2D x,double rx)
 {
-    const WorldModel & wm=agent -> world();
+    const WorldModel & wm=agent->world();
     Vector2D ball_pos=wm.ball().pos();
-    AngleDeg mate_angle = (mate_pos-ball_pos).th();
-    Vector2D velo = Vector2D :: polar2vector(mate_dist,mate_angle);
-    bool result = true;
-    double pos_num=1;
-    Vector2D next_pos = inertia_n_step_point(ball_pos,velo,pos_num,ServerParam::i().ballDecay());
-    while (mate_pos.dist(next_pos) > 1 && pos_num<30)
+    AngleDeg an=(x-ball_pos).th();
+    Vector2D velo=Vector2D::polar2vector(rx,an);
+    bool result=true;
+    double i=1;
+    Vector2D next_pos=inertia_n_step_point(ball_pos,velo,i,ServerParam::i().ballDecay());
+    while(x.dist(next_pos)>1 && i<30)
     {
-        next_pos=inertia_n_step_point(ball_pos,velo,pos_num,ServerParam::i().ballDecay());
+        next_pos=inertia_n_step_point(ball_pos,velo,i,ServerParam::i().ballDecay());
         double dist_near_opp=wm.getDistOpponentNearestTo(next_pos,5);
-        if (dist_near_opp<1)
+        if(dist_near_opp<i)
         {
-            result = false;
+            result=false;
         }
-        agent -> debugClient().addCircle(next_pos,1);
-        ++pos_num;
-    }
+        agent->debugClient().addCircle(next_pos,1);
+        ++i;
+        }
     return result;
-}
+}   
